@@ -2,9 +2,11 @@ import 'frida-il2cpp-bridge';
 
 const SETTING = {
     'Version': '2.0.2',
-    'IsBiliChannel': true, //是否是b服
+    'ServerUrl':'219.217.199.161:9444',//服务器地址
+    'EnableChangeUrl': true,//直接暴力修改Network_Config响应里面的地址，不需要证书不需要代理
+    'IsBiliChannel': false, //是否是b服
     'Proxy': false, //启用besthttp代理
-    'ProxyAddress': 'http://192.168.2.5:11240',
+    'ProxyAddress': 'http://219.217.199.161:8080',
     'ShowEnemyHp': true, //显示敌人血量
     'PP': false, //添加额外后处理
     'ShowBattleTimeInfo': true, //战斗中显示时间
@@ -511,6 +513,23 @@ namespace Il2CppHook {
         }
     }
 
+    function ChangeServerHook(): void {
+        if (SETTING['ServerUrl'] || SETTING['EnableChangeUrl']) {
+            Java.perform(function () {
+                var URL = Java.use("java.net.URL");
+                URL.$init.overload('java.lang.String').implementation = function (urlStr) {
+                    //console.log(`[Java Layer] Hook url:${urlStr}`)
+                    if (urlStr.match("https://ak-conf.hypergryph.com/config/prod/official/network_config")) {
+                        urlStr = `http://${SETTING['ServerUrl']}/prod/official/network_config`;
+                    }
+                    return this.$init(urlStr);
+                };
+        });
+    }}
+
+
+    
+
     function MiscHook(): void {
         let LoadApplicationSign = AssemblyCSharp.class('Torappu.NativeUtil').method<Il2Cpp.String>('LoadApplicationSign');
         LoadApplicationSign.implementation = function () {
@@ -546,6 +565,13 @@ namespace Il2CppHook {
                 Logger.log('[1;' + color + '<' + name + '> from Unity' + ':\n' + Il2CppUtil.readCSharpString(args[1])?.replace(/<\/*color.*?>/g, '') + '[m\n    ' + '[1;30m' + Il2CppUtil.readCSharpString(args[2])?.replace(/\n/g, '\n    ') + '[m');
             }
         });
+    }
+
+    function VerifySignMD5RSAHook(): void {
+        let VerifySignMD5RSA = AssemblyCSharp.class('Torappu.CryptUtils').method('VerifySignMD5RSA');
+        VerifySignMD5RSA.implementation = function(){
+            return true;
+        }
     }
 
     function EnemyHpSliderHook(): void {
@@ -1310,8 +1336,8 @@ namespace Il2CppHook {
         Logger.log('[1;36mPid:[m [1;34m' + Process.id.toString() + '[m');
         Logger.log('[1;36mAPK签名:[m [1;34m' + JavaUtil.getAppSignature() + '[m');
         tryCallingHook(
-            [initHook, initAccountData, NetworkHook, LogHook, MiscHook, LoginHook, TASHook],
-            ['initHook', 'initAccountData', 'NetworkHook', 'LogHook', 'MiscHook', 'LoginHook', 'TASHook'],
+            [initHook,ChangeServerHook,VerifySignMD5RSAHook, initAccountData, NetworkHook, LogHook, MiscHook, LoginHook, TASHook],
+            ['initHook', 'ChangeServerHook','VerifySignMD5RSAHook','initAccountData', 'NetworkHook', 'LogHook', 'MiscHook', 'LoginHook', 'TASHook'],
             '[Il2CppHook]');
         Logger.logNormal('[Il2CppHook] Starting UIBaseHook()...');
         UIBaseHook();
