@@ -34,6 +34,7 @@ export namespace Il2CppHook {
         AudioManager: Il2Cpp.Class,
         PlaySoundFx: Il2Cpp.Method;
 
+    let WebHttpResponse: Il2Cpp.Class;
     let BattleControllerInstance: Il2Cpp.Object | null = null;
     let UIControllerInstance: Il2Cpp.Object | null = null;
 
@@ -117,6 +118,7 @@ export namespace Il2CppHook {
         FileUtil.writeFile(accountDataPath, JSON.stringify(accountData));
     }
 
+    //代理转向
     function NetworkHook(): void {
         if (SETTING['Proxy'] || accountData['Proxy']['enable']) {
             let url = SETTING['Proxy'] ? SETTING['ProxyAddress'] : accountData['Proxy']['address'];
@@ -284,14 +286,24 @@ export namespace Il2CppHook {
         let PostWithProperNetworkUtil = Networker.method('_PostWithProperNetworkUtil');
 
         // hook
+        
         Interceptor.attach(Il2CppUtil.getFunctionByAddress(Il2Cpp.module, PostWithProperNetworkUtil.relativeVirtualAddress), {
             onEnter: args => {
                 let url = new Il2Cpp.String(args[1]).content as string;
                 Logger.logNormal(`Post Url: [1;36m${url}[m`, '[NetworkHook]');
-                if (HGUid != "-1" && !url.includes('as.hypergryph.com') && !url.includes('/account/login')) {
-                    accountData['Game'][HGUid]['seqnum'] = Networker.method<Il2Cpp.Object>('get_instance').invoke().field<number>('m_seqNum').value + 1;
-                    saveAccountData();
-                }
+                /*
+                    private IEnumerator _PostWithProperNetworkUtil(String url, String text, Dictionary`2 header, WebHttpResponse outResponse, Func`1 checkIfCancelled) { }
+                */
+                let contentReq = new Il2Cpp.String(args[2]).content as string;
+                Logger.logNormal(`Content: [1;36m${contentReq}[m`, '[NetworkHook > Request]')
+                let contentRes = args[4];
+                Logger.logNormal(`Content: [1;36m${contentRes}[m`, '[NetworkHook > Response]')
+                //let content = Networker.method<Il2Cpp.Object>('get_instance').invoke().field<number>('m_seqNum').value;
+                //Logger.logNormal(`Post Data: [1;36m${content}[m`, '[NetworkHook]');
+                // if (HGUid != "-1" && !url.includes('as.hypergryph.com') && !url.includes('/account/login')) {
+                //     accountData['Game'][HGUid]['seqnum'] = Networker.method<Il2Cpp.Object>('get_instance').invoke().field<number>('m_seqNum').value + 1;
+                //     saveAccountData();
+                // }
             }
         });
 
