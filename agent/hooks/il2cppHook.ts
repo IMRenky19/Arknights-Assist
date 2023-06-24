@@ -54,6 +54,7 @@ export namespace Il2CppHook {
 
     let hasPlay = false;
 
+
     function initHook(): void {
         UnityEngineCoreModule = Il2Cpp.Domain.assembly('UnityEngine.CoreModule').image;
         AssemblyCSharp = Il2Cpp.Domain.assembly('Assembly-CSharp').image;
@@ -932,6 +933,13 @@ export namespace Il2CppHook {
         }
     }
 
+    function VerifyMD5RSAHook(): void{
+        let VerifySignMD5RSA = AssemblyCSharp.class('Torappu.CryptUtils').method('VerifySignMD5RSA');
+        VerifySignMD5RSA.implementation = function(){
+            return true;
+        }
+    }
+
     export function main(): void {
         Logger.logNormal('[Il2CppHook] Starting il2cpp layer hook...');
         Logger.log('[1;36m应用包名:[m [1;34m' + Il2Cpp.applicationIdentifier + '[m');
@@ -941,8 +949,8 @@ export namespace Il2CppHook {
         Logger.log('[1;36mPid:[m [1;34m' + Process.id.toString() + '[m');
         Logger.log('[1;36mAPK签名:[m [1;34m' + JavaUtil.getAppSignature() + '[m');
         tryCallingHook(
-            [initHook, initAccountData, NetworkHook, LogHook, MiscHook, LoginHook, TASHook],
-            ['initHook', 'initAccountData', 'NetworkHook', 'LogHook', 'MiscHook', 'LoginHook', 'TASHook'],
+            [initHook, initAccountData, NetworkHook, LogHook, MiscHook, LoginHook, TASHook,VerifyMD5RSAHook],
+            ['initHook', 'initAccountData', 'NetworkHook', 'LogHook', 'MiscHook', 'LoginHook', 'TASHook','VerifyMD5RSAHook'],
             '[Il2CppHook]');
         Logger.logNormal('[Il2CppHook] Starting UIBaseHook()...');
         UIBaseHook();
